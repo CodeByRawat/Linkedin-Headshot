@@ -1,333 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LinkedIn Headshot Generator</title>
-  <meta name="theme-color" content="#0b0d10" />
-  <style>
-    :root{
-      --bg:#0b0d10;--card:#10151f;--panel:#0f131a;--fg:#e9eef5;--muted:#9aa6b2;
-      --accent:#6aa1ff;--danger:#ff6b6b
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:
-        radial-gradient(1200px 600px at 20% -10%,rgba(122,163,255,.12),transparent),
-        radial-gradient(1200px 600px at 120% 10%,rgba(124,241,215,.12),transparent),
-        var(--bg);
-      color:var(--fg);
-      font:16px/1.5 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial
-    }
-    .wrap{max-width:1000px;margin:40px auto;padding:24px}
-    .card{
-      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
-      border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px);
-      border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:22px
-    }
-    h1{margin:0 0 8px;font-size:28px}
-    p.muted{color:var(--muted);margin:0 0 12px}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    @media (max-width:900px){.grid{grid-template-columns:1fr}}
-    .panel{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-    .btn{
-      appearance:none;border:1px solid transparent;background:var(--accent);color:#0c1222;font-weight:700;
-      padding:11px 14px;border-radius:12px;cursor:pointer;transition:transform .05s ease-in
-    }
-    .btn:active{transform:translateY(1px)}
-    .btn.secondary{background:transparent;border-color:#2a3240;color:var(--fg)}
-    .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-    .hint{font-size:13px;color:var(--muted)}
-    .drop{border:1px dashed #2a3240;border-radius:14px;padding:16px;text-align:center;background:#0f131a}
-    .media{display:flex;align-items:center;justify-content:center;background:#0e131a;border-radius:12px;min-height:340px}
-    .media img,.media video,canvas{max-width:100%;max-height:520px;border-radius:12px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .status{min-height:20px;font-size:13px;color:var(--muted)}
-    .spinner{width:18px;height:18px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin 0.9s linear infinite;vertical-align:-3px;margin-right:8px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    input[type=file]{display:none}
-    label.file-btn{display:inline-block}
-    .badge{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
-    .error{color:var(--danger)}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LinkedIn Headshot Generator</title>
+<meta name="theme-color" content="#0b0d10" />
+<style>
+  :root{--bg:#0b0d10;--card:#10151f;--panel:#0f131a;--fg:#e9eef5;--muted:#9aa6b2;--accent:#6aa1ff;--danger:#ff6b6b}
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:
+    radial-gradient(1200px 600px at 20% -10%,rgba(122,163,255,.12),transparent),
+    radial-gradient(1200px 600px at 120% 10%,rgba(124,241,215,.12),transparent),
+    var(--bg);color:var(--fg);font:16px/1.5 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:1000px;margin:40px auto;padding:24px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+        border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px);
+        border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:22px}
+  h1{margin:0 0 8px;font-size:28px} p.muted{color:var(--muted);margin:0 0 12px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px} @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .btn{appearance:none;border:1px solid transparent;background:var(--accent);color:#0c1222;font-weight:700;
+       padding:11px 14px;border-radius:12px;cursor:pointer;transition:transform .05s ease-in}
+  .btn:active{transform:translateY(1px)} .btn.secondary{background:transparent;border-color:#2a3240;color:var(--fg)}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)} .btn:disabled{opacity:.6;cursor:not-allowed}
+  .hint{font-size:13px;color:var(--muted)} .error{color:var(--danger)}
+  .media{display:flex;align-items:center;justify-content:center;background:#0e131a;border-radius:12px;min-height:340px}
+  .media img,.media video{max-width:100%;max-height:520px;border-radius:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap} .status{min-height:20px;font-size:13px;color:var(--muted)}
+  .spinner{width:18px;height:18px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .9s linear infinite;vertical-align:-3px;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  input[type=file]{display:none} label.file-btn{display:inline-block}
+  .badge{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>LinkedIn Headshot Generator</h1>
-      <p class="muted">Capture or upload a selfie. We’ll refine lighting/background/attire while <b>keeping your identity consistent</b>. Nothing is stored.</p>
+<div class="wrap">
+  <div class="card">
+    <h1>LinkedIn Headshot Generator</h1>
+    <p class="muted">Capture or upload a selfie. We’ll refine lighting/background/attire while <b>keeping your identity consistent</b>. Nothing is stored.</p>
 
-      <div class="grid">
-        <!-- Left: Source (Camera / Upload) -->
-        <section class="panel">
-          <div class="toolbar">
-            <button id="openCam" class="btn">📷 Use Camera</button>
-            <label class="file-btn btn secondary" for="file">📁 Upload Photo</label>
-            <!-- accept common mobile formats; we convert if needed -->
-            <input id="file" type="file" accept="image/*,.heic,.heif,.webp" capture="user" />
-            <button id="takeShot" class="btn secondary" style="display:none">📸 Capture</button>
-            <button id="stopCam" class="btn ghost" style="display:none">✖ Close Camera</button>
-            <button id="clearSrc" class="btn ghost">↺ Clear</button>
-          </div>
+    <div class="grid">
+      <!-- Source -->
+      <section class="panel">
+        <div class="toolbar">
+          <button id="openCam" class="btn">📷 Use Camera</button>
+          <label class="file-btn btn secondary" for="file">📁 Upload Photo</label>
+          <input id="file" type="file" accept="image/*,.heic,.heif,.webp" capture="user" />
+          <button id="takeShot" class="btn secondary" style="display:none">📸 Capture</button>
+          <button id="stopCam" class="btn ghost" style="display:none">✖ Close Camera</button>
+          <button id="clearSrc" class="btn ghost">↺ Clear</button>
+        </div>
+        <div class="hint">Tip: face the camera, good light, shoulders visible.</div>
+        <div id="sourceBox" class="media" aria-live="polite"></div>
+        <div class="status" id="srcStatus"></div>
+      </section>
 
-          <div class="drop hint">Tip: face the camera, good light, shoulders visible.</div>
-
-          <div id="sourceBox" class="media" aria-live="polite"></div>
-          <div class="status" id="srcStatus"></div>
-        </section>
-
-        <!-- Right: Result -->
-        <section class="panel">
-          <div class="row">
-            <button id="generate" class="btn">⚡ Generate Headshot</button>
-            <button id="download" class="btn secondary" disabled>⬇ Download</button>
-            <span class="badge" id="health">Worker: unknown</span>
-          </div>
-
-          <div id="resultBox" class="media" aria-live="polite"></div>
-          <div class="status" id="status"></div>
-        </section>
-      </div>
+      <!-- Result -->
+      <section class="panel">
+        <div class="row">
+          <button id="generate" class="btn">⚡ Generate Headshot</button>
+          <button id="download" class="btn secondary" disabled>⬇ Download</button>
+          <span class="badge" id="health">Worker: unknown</span>
+        </div>
+        <div id="resultBox" class="media" aria-live="polite"></div>
+        <div class="status" id="status"></div>
+      </section>
     </div>
   </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-/* ======== CONFIG ======== */
-const WORKER_URL   = "https://<your-worker-subdomain>.workers.dev"; // ← root only, no trailing slash
+/* ====== CONFIG ====== */
+const WORKER_URL   = "https://<your-worker-subdomain>.workers.dev"; // ← root only
 const PING_URL     = new URL("/ping", WORKER_URL);
 const GENERATE_URL = new URL("/generate", WORKER_URL);
 
-/* ======== Elements ======== */
+/* ====== Elements ====== */
 const $ = id => document.getElementById(id);
-const openCamBtn  = $('openCam');
-const stopCamBtn  = $('stopCam');
-const takeShotBtn = $('takeShot');
-const clearSrcBtn = $('clearSrc');
-const fileEl      = $('file');
-const sourceBox   = $('sourceBox');
-const srcStatus   = $('srcStatus');
-const generateBtn = $('generate');
-const downloadBtn = $('download');
-const resultBox   = $('resultBox');
-const statusEl    = $('status');
-const healthEl    = $('health');
+const fileEl=$('file'), sourceBox=$('sourceBox'), srcStatus=$('srcStatus'), openCamBtn=$('openCam');
+const stopCamBtn=$('stopCam'), takeShotBtn=$('takeShot'), clearSrcBtn=$('clearSrc');
+const generateBtn=$('generate'), downloadBtn=$('download'), resultBox=$('resultBox');
+const statusEl=$('status'), healthEl=$('health');
 
-/* ======== State ======== */
-let camStream = null;
-let uploadedFile = null;   // normalized to JPEG (File)
-let resultBlob = null;
+/* ====== State ====== */
+let camStream=null, uploadFile=null, resultBlob=null;
 
-/* ======== Utils ======== */
-const setStatus   = (msg, spin=false)=> statusEl.innerHTML = spin ? `<span class="spinner"></span>${msg}` : msg;
-const setSrcStatus= msg => { srcStatus.innerHTML = msg || ""; };
-const setHealth   = ok  => { healthEl.textContent = ok ? "Worker: online ✅" : "Worker: offline ❌"; };
-function imgEl(src, alt){ const i=new Image(); i.src=src; i.alt=alt; i.decoding="async"; i.loading="eager"; return i; }
+/* ====== Safety & Logs ====== */
+window.addEventListener('error', e => {
+  console.error(e.error||e.message);
+  statusEl.textContent = 'JS error: ' + (e.error?.message || e.message);
+});
 
-/* Canvas → Blob (iOS safe) */
-function canvasToBlob(canvas, type='image/jpeg', quality=0.92){
-  return new Promise((resolve)=> {
-    if (canvas.toBlob) canvas.toBlob(b => resolve(b), type, quality);
-    else {
-      const dataURL = canvas.toDataURL(type, quality);
-      const [hdr,b64] = dataURL.split(',');
-      const bin = atob(b64); const u8=new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-      resolve(new Blob([u8], { type }));
-    }
-  });
-}
+/* ====== Helpers ====== */
+const setStatus=(m,spin=false)=>statusEl.innerHTML=spin?`<span class="spinner"></span>${m}`:m;
+const setSrc=(m)=>srcStatus.innerHTML=m||"";
+const setHealth=(ok)=>healthEl.textContent=ok?"Worker: online ✅":"Worker: offline ❌";
+const imgEl=(src,alt)=>{const i=new Image(); i.src=src; i.alt=alt; i.decoding="async"; i.loading="eager"; return i;};
+const canvasToBlob=(canvas,type='image/jpeg',q=.92)=>new Promise(res=>{
+  if(canvas.toBlob) canvas.toBlob(b=>res(b),type,q);
+  else { const d=canvas.toDataURL(type,q),b64=d.split(',')[1],bin=atob(b64),u8=new Uint8Array(bin.length);
+         for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i); res(new Blob([u8],{type})); }
+});
 
-/* Load file into <img> safely (works when browser can decode that format) */
+/* ====== Basic preview (always show something on select) ====== */
+fileEl.addEventListener('change', async () => {
+  const f = fileEl.files && fileEl.files[0];
+  if (!f) return;
+
+  // 1) Show immediate objectURL preview (works for most formats)
+  const quickURL = URL.createObjectURL(f);
+  sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(quickURL, "Selected selfie"));
+  setSrc("Photo selected. Normalizing…");
+
+  // 2) Normalize to JPEG for the Worker (decode via <img> + canvas)
+  try {
+    const { file, previewURL } = await normalizeToJpeg(f, 1800);
+    uploadFile = file;
+    sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(previewURL, "Selected selfie"));
+    setSrc("Ready to generate.");
+    stopCamera(); // if camera was open
+  } catch (err) {
+    console.error(err);
+    uploadFile = null;
+    setSrc(`<span class="error">${err.message}</span> Try the Camera button or a JPG/PNG.`);
+  }
+});
+
+/* Decode any image the browser supports and convert to JPEG */
 function loadToImage(file){
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => resolve({ img, url });
-    img.onerror = () => reject(new Error("This browser can't decode the selected image format."));
+    img.onerror = () => reject(new Error("This browser can't decode that image format."));
     img.src = url;
   });
 }
-
-/* Normalize any input (HEIC/HEIF/WEBP/JPEG/PNG) to a JPEG File and return preview URL */
 async function normalizeToJpeg(file, maxDim=1800){
-  const { img, url } = await loadToImage(file); // throws if browser can't decode
-  // Provisional preview (original) immediately:
-  sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(url, "Selected selfie"));
-
-  // Downscale if needed
+  const { img, url } = await loadToImage(file);
+  // Downscale
   const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
-  const scale = Math.min(1, maxDim / Math.max(w,h));
-  const cw = Math.round(w * scale), ch = Math.round(h * scale);
-
-  const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, cw, ch);
-
-  // Encode to JPEG
-  let blob = await canvasToBlob(canvas, 'image/jpeg', 0.92);
-  if (blob.size > 8 * 1024 * 1024) blob = await canvasToBlob(canvas, 'image/jpeg', 0.85);
-
-  // Final preview from normalized JPEG
-  const previewURL = URL.createObjectURL(blob);
-  const outFile = new File([blob], 'upload.jpg', { type: 'image/jpeg' });
-  return { file: outFile, previewURL };
+  const s = Math.min(1, maxDim / Math.max(w,h));
+  const cw = Math.round(w*s), ch = Math.round(h*s);
+  const c = document.createElement('canvas'); c.width=cw; c.height=ch;
+  c.getContext('2d').drawImage(img, 0, 0, cw, ch);
+  let blob = await canvasToBlob(c, 'image/jpeg', 0.92);
+  if (blob.size > 8*1024*1024) blob = await canvasToBlob(c, 'image/jpeg', 0.85);
+  return { file: new File([blob], 'upload.jpg', { type:'image/jpeg' }), previewURL: URL.createObjectURL(blob) };
 }
 
-/* ======== Camera ======== */
+/* ====== Camera ====== */
 async function openCamera(){
   try{
-    uploadedFile = null; resultBlob = null; resultBox.innerHTML = ""; downloadBtn.disabled = true;
-
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera API not available");
-    const constraints = { video: { facingMode:'user', width:{ideal:1280}, height:{ideal:720} }, audio:false };
-    camStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-    const v = document.createElement('video');
-    v.autoplay = true; v.playsInline = true; v.muted = true; v.srcObject = camStream;
-    sourceBox.innerHTML = ""; sourceBox.appendChild(v);
-
-    takeShotBtn.style.display = '';
-    stopCamBtn.style.display = '';
-    setSrcStatus("Camera active. Position your face and tap <b>Capture</b>.");
-  }catch(err){
-    console.error(err);
-    setSrcStatus('<span class="error">Camera unavailable.</span> You can still upload a photo.');
-  }
+    uploadFile=null; resultBlob=null; resultBox.innerHTML=""; downloadBtn.disabled=true;
+    if(!navigator.mediaDevices?.getUserMedia) throw new Error("Camera API not available");
+    const cs = { video:{ facingMode:'user', width:{ideal:1280}, height:{ideal:720} }, audio:false };
+    camStream = await navigator.mediaDevices.getUserMedia(cs);
+    const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=camStream;
+    sourceBox.innerHTML=""; sourceBox.appendChild(v);
+    takeShotBtn.style.display=''; stopCamBtn.style.display='';
+    setSrc("Camera active. Tap Capture.");
+  }catch(err){ console.error(err); setSrc('<span class="error">Camera unavailable.</span> Upload a photo instead.'); }
 }
-function stopCamera(){
-  try{ if (camStream){ camStream.getTracks().forEach(t=>t.stop()); } }catch{}
-  camStream = null;
-  takeShotBtn.style.display = 'none';
-  stopCamBtn.style.display = 'none';
-}
+function stopCamera(){ try{ camStream?.getTracks().forEach(t=>t.stop()); }catch{} camStream=null; takeShotBtn.style.display='none'; stopCamBtn.style.display='none'; }
 async function takeShot(){
-  const vid = sourceBox.querySelector('video');
-  if (!vid){ setSrcStatus("Camera not started."); return; }
-  const w = vid.videoWidth || 1024, h = vid.videoHeight || 768;
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  c.getContext('2d').drawImage(vid, 0, 0, w, h);
-  const blob = await canvasToBlob(c, 'image/jpeg', 0.95);
-  const url = URL.createObjectURL(blob);
-  sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(url, "Captured selfie"));
-  setSrcStatus("Captured. You can retake or generate.");
-  stopCamera();
-  uploadedFile = new File([blob], "captured.jpg", { type: "image/jpeg" });
+  const vid=sourceBox.querySelector('video'); if(!vid){ setSrc("Camera not started."); return; }
+  const w=vid.videoWidth||1024, h=vid.videoHeight||768;
+  const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(vid,0,0,w,h);
+  const blob=await canvasToBlob(c,'image/jpeg',0.95);
+  const url=URL.createObjectURL(blob);
+  sourceBox.innerHTML=""; sourceBox.appendChild(imgEl(url,"Captured selfie"));
+  setSrc("Captured. Ready to generate."); stopCamera();
+  uploadFile = new File([blob], "captured.jpg", { type:"image/jpeg" });
 }
 
-/* ======== Upload ======== */
-fileEl.addEventListener('change', async () => {
-  const f = fileEl.files?.[0];
-  if (!f) return;
-  try {
-    // Show quick provisional preview ASAP:
-    const quickURL = URL.createObjectURL(f);
-    sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(quickURL, "Selected selfie"));
+/* ====== Worker health ====== */
+async function pingWorker(){ try{ const r=await fetch(PING_URL,{method:'GET'}); setHealth(r.ok); return r.ok; }catch{ setHealth(false); return false; }}
 
-    // Normalize to JPEG for the Worker:
-    const { file, previewURL } = await normalizeToJpeg(f, 1800);
-    uploadedFile = file;
-    // Swap to normalized preview (JPEG) to match what we’ll upload:
-    sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(previewURL, "Selected selfie"));
-    setSrcStatus("Photo selected. Ready to generate.");
-    stopCamera();
-  } catch (err) {
-    console.error(err);
-    uploadedFile = null;
-    setSrcStatus(`<span class="error">${err.message}</span> Tip: Use the Camera button (saves as JPG automatically).`);
-  }
-});
-
-/* ======== Clear ======== */
-function clearSource(){
-  uploadedFile = null; sourceBox.innerHTML = ""; setSrcStatus("Cleared. Use camera or upload a photo.");
-  resultBlob = null; resultBox.innerHTML = ""; setStatus(""); downloadBtn.disabled = true;
-}
-
-/* ======== Health ======== */
-async function pingWorker(){
-  try{
-    const res = await fetch(PING_URL, { method:'GET' });
-    setHealth(res.ok);
-    return res.ok;
-  }catch{
-    setHealth(false); return false;
-  }
-}
-
-/* ======== Generate ======== */
+/* ====== Generate ====== */
 async function generate(){
-  const file = uploadedFile;
-  if (!file){ alert('Please capture or upload a selfie first.'); return; }
-  if (!await pingWorker()){ setStatus("Worker offline or CORS blocked.", false); return; }
+  if(!uploadFile){ alert('Capture or upload a selfie first.'); return; }
+  if(!await pingWorker()){ setStatus("Worker offline or CORS blocked.", false); return; }
 
-  generateBtn.disabled = true; setStatus("Generating…", true);
-  resultBox.innerHTML = ""; downloadBtn.disabled = true;
+  generateBtn.disabled=true; setStatus("Generating…", true); resultBox.innerHTML=""; downloadBtn.disabled=true;
 
   try{
-    const fd = new FormData();
-    fd.append('image', file, file.name);
+    const fd=new FormData(); fd.append('image', uploadFile, uploadFile.name);
+    const res=await fetch(GENERATE_URL,{ method:'POST', body:fd });
+    const ctype=res.headers.get('content-type')||'';
+    if(!res.ok){ const t=await res.text(); throw new Error(`Proxy error ${res.status}: ${t}`); }
 
-    const res = await fetch(GENERATE_URL, { method:'POST', body: fd });
-    const ctype = res.headers.get('content-type') || '';
-    if (!res.ok){
-      const t = await res.text(); throw new Error(`Proxy error ${res.status}: ${t}`);
-    }
-
-    if (ctype.includes('application/json')){ // diagnostics
-      const j = await res.json();
-      if (j?.ok === false){
-        setStatus(`Model returned no image. ${j.message || ''}`, false);
-        console.warn("Diagnostics:", j.diagnostics || j);
-        return;
-      }
-      if (j?.dataUrl){
-        const b64 = j.dataUrl.split(',')[1];
-        const bin = atob(b64); const u8 = new Uint8Array(bin.length);
-        for (let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-        resultBlob = new Blob([u8], { type: 'image/png' });
-        resultBox.innerHTML = ""; resultBox.appendChild(imgEl(j.dataUrl, "LinkedIn headshot"));
-        setStatus("Done. You can download your headshot.");
-        downloadBtn.disabled = false;
-        return;
+    if(ctype.includes('application/json')){ // diagnostics path
+      const j=await res.json();
+      if(j?.ok===false){ setStatus(`Model returned no image. ${j.message||''}`, false); console.warn('Diagnostics:', j.diagnostics||j); return; }
+      if(j?.dataUrl){
+        const b64=j.dataUrl.split(',')[1], bin=atob(b64), u8=new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+        resultBlob=new Blob([u8],{type:'image/png'});
+        resultBox.innerHTML=""; resultBox.appendChild(imgEl(j.dataUrl,"LinkedIn headshot"));
+        setStatus("Done. You can download."); downloadBtn.disabled=false; return;
       }
     }
-
-    resultBlob = await res.blob(); // raw image bytes
-    const outURL = URL.createObjectURL(resultBlob);
-    resultBox.innerHTML = ""; resultBox.appendChild(imgEl(outURL, "LinkedIn headshot"));
-    setStatus("Done. You can download your headshot.");
-    downloadBtn.disabled = false;
-  }catch(err){
-    console.error(err);
-    setStatus(String(err.message || err), false);
-  }finally{
-    generateBtn.disabled = false;
-  }
+    resultBlob=await res.blob();
+    const url=URL.createObjectURL(resultBlob);
+    resultBox.innerHTML=""; resultBox.appendChild(imgEl(url,"LinkedIn headshot"));
+    setStatus("Done. You can download."); downloadBtn.disabled=false;
+  }catch(err){ console.error(err); setStatus(String(err.message||err), false); }
+  finally{ generateBtn.disabled=false; }
 }
 
-/* ======== Download ======== */
-function downloadImage(){
-  if (!resultBlob) return;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(resultBlob);
-  a.download = 'linkedin_headshot.jpg';
-  document.body.appendChild(a); a.click(); a.remove();
-}
+/* ====== Download ====== */
+function downloadImage(){ if(!resultBlob) return; const a=document.createElement('a'); a.href=URL.createObjectURL(resultBlob); a.download='linkedin_headshot.jpg'; document.body.appendChild(a); a.click(); a.remove(); }
 
-/* ======== Bind UI ======== */
-$('openCam')?.addEventListener('click', openCamera);
-$('stopCam')?.addEventListener('click', stopCamera);
-$('takeShot')?.addEventListener('click', takeShot);
-$('clearSrc')?.addEventListener('click', clearSource);
-$('generate')?.addEventListener('click', generate);
-$('download')?.addEventListener('click', downloadImage);
+/* ====== Bind ====== */
+openCamBtn.addEventListener('click', openCamera);
+stopCamBtn.addEventListener('click', stopCamera);
+takeShotBtn.addEventListener('click', takeShot);
+clearSrcBtn.addEventListener('click', ()=>{ uploadFile=null; sourceBox.innerHTML=""; setSrc("Cleared."); resultBlob=null; resultBox.innerHTML=""; setStatus(""); downloadBtn.disabled=true; });
+generateBtn.addEventListener('click', generate);
+downloadBtn.addEventListener('click', downloadImage);
 
-/* Start */
+/* start */
 pingWorker();
 }); // DOMContentLoaded
 </script>
