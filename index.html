@@ -27,7 +27,7 @@
   <div class="wrap">
     <div class="card">
       <h1>📸 LinkedIn Headshot Generator</h1>
-      <p class="muted">Upload a selfie. We’ll refine lighting/background/attire while <b>keeping your identity consistent</b>. No images are stored.</p>
+      <p class="muted">Upload a selfie. We refine lighting/background/attire while <b>keeping your identity consistent</b>. No images are stored.</p>
 
       <div class="uploader">
         <label>Selfie (JPG/PNG, ≤ 8 MB)</label>
@@ -54,53 +54,65 @@
   </div>
 
 <script>
-const WORKER_URL = "https://headshot-proxy.sachinrawat-in-com.workers.dev//generate"; // ← set your Worker URL
+const WORKER_URL  = "https://headshot-proxy.sachinrawat-in-com.workers.dev/generate";   // ← set your Worker root (no trailing slash)
+const GENERATE_URL = WORKER_URL + "/generate";
+const PING_URL     = WORKER_URL + "/ping";
 
-// Identity-safe master prompt
-const PROMPT = `Generate a professional LinkedIn headshot using the uploaded selfie as the base reference.
-Keep my identity consistent — do not alter facial structure, eyes, nose, lips, or natural features.
-Only refine lighting, skin tone, background, and attire.
-Place me in a clean, neutral light-grey studio background with soft professional lighting.
-Dress me in formal business attire: dark blazer over a light shirt.
-Maintain natural skin texture and realistic detail; gentle, approachable expression.
-Front-facing, shoulders-up composition with shallow depth of field.
-Output a photorealistic corporate headshot suitable for LinkedIn.`;
+const fileEl    = document.getElementById('file');
+const noteEl    = document.getElementById('note');
+const goBtn     = document.getElementById('go');
+const previewEl = document.getElementById('preview');
+const resultEl  = document.getElementById('result');
+const statusEl  = document.getElementById('status');
 
-// Elements
-const fileEl = document.getElementById('file');
-const noteEl = document.getElementById('note');
-const goBtn = document.getElementById('go');
-const previewImg = document.getElementById('preview');
-const resultImg = document.getElementById('result');
-const statusEl = document.getElementById('status');
-
-fileEl.addEventListener('change', () => {
-  const f = fileEl.files[0];
-  if (!f) return;
-  if (!/^image\\/(jpeg|jpg|png)$/i.test(f.type)) { alert('Please upload JPG or PNG.'); fileEl.value = ""; return; }
-  if (f.size > 8 * 1024 * 1024) { alert('Please keep file ≤ 8 MB.'); fileEl.value = ""; return; }
-  previewImg.src = URL.createObjectURL(f);
+window.addEventListener('error', (e) => {
+  console.error(e.error || e.message);
+  if (statusEl) statusEl.textContent = 'JS error: ' + (e.error?.message || e.message);
 });
 
-async function generate(){
+fileEl?.addEventListener('change', () => {
   const f = fileEl.files[0];
+  if (!f) return;
+  if (!/^image\/(jpeg|jpg|png)$/i.test(f.type)) { alert('Please upload JPG or PNG.'); fileEl.value=""; return; }
+  if (f.size > 8 * 1024 * 1024) { alert('Please keep file ≤ 8 MB.'); fileEl.value=""; return; }
+  previewEl.src = URL.createObjectURL(f);
+});
+
+async function pingWorker() {
+  try {
+    const res = await fetch(PING_URL, { method: 'GET' });
+    if (!res.ok) throw new Error(`Ping failed ${res.status}`);
+    return true;
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = `Cannot reach Worker (${PING_URL}). Check WORKER_URL or CORS.`;
+    return false;
+  }
+}
+
+async function generate(){
+  const f = fileEl?.files?.[0];
   if (!f){ alert('Please choose a selfie image first.'); return; }
-  goBtn.disabled = true; statusEl.textContent = 'Uploading and generating…'; resultImg.src = '';
+  if (!(await pingWorker())) return;
+
+  goBtn.disabled = true;
+  statusEl.textContent = 'Uploading and generating…';
+  resultEl.src = '';
+
   try {
     const fd = new FormData();
     fd.append('image', f, f.name);
-    fd.append('prompt', PROMPT);
-    fd.append('note', noteEl.value || '');
+    fd.append('note', (noteEl?.value || ''));
 
-    const res = await fetch(WORKER_URL, { method: 'POST', body: fd });
-    if (!res.ok){
+    const res = await fetch(GENERATE_URL, { method: 'POST', body: fd });
+    if (!res.ok) {
       const text = await res.text();
       throw new Error(`Proxy error ${res.status}: ${text}`);
     }
     const blob = await res.blob();
-    resultImg.src = URL.createObjectURL(blob);
-    statusEl.textContent = 'Done. Right-click to save the image.';
-  } catch (err){
+    resultEl.src = URL.createObjectURL(blob);
+    statusEl.textContent = 'Done. Right-click → Save image.';
+  } catch (err) {
     console.error(err);
     statusEl.textContent = 'Failed: ' + err.message;
   } finally {
@@ -108,7 +120,7 @@ async function generate(){
   }
 }
 
-goBtn.addEventListener('click', generate);
+goBtn?.addEventListener('click', generate);
 </script>
 </body>
 </html>
