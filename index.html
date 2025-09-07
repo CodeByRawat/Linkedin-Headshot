@@ -46,7 +46,9 @@
         <div class="toolbar">
           <button id="openCam" class="btn">📷 Use Camera</button>
           <label class="file-btn btn secondary" for="file">📁 Upload Photo</label>
-          <input id="file" type="file" accept="image/*,.heic,.heif,.webp" capture="user" />
+          <!-- FIX: removed capture="user" so mobile shows gallery picker -->
+          <input id="file" type="file"
+                 accept="image/jpeg,image/png,image/webp,image/heic,image/heif" />
           <button id="takeShot" class="btn secondary" style="display:none">📸 Capture</button>
           <button id="stopCam" class="btn ghost" style="display:none">✖ Close Camera</button>
           <button id="clearSrc" class="btn ghost">↺ Clear</button>
@@ -72,8 +74,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-/* ====== CONFIG (set this!) ====== */
-const WORKER_URL   = "https://headshot-proxy.sachinrawat-in-com.workers.dev"; // root only, no trailing slash
+/* ====== CONFIG ====== */
+const WORKER_URL   = "https://headshot-proxy.sachinrawat-in-com.workers.dev"; // root only
 const PING_URL     = new URL("/ping", WORKER_URL);
 const GENERATE_URL = new URL("/generate", WORKER_URL);
 
@@ -117,8 +119,7 @@ function loadToImage(file){
 
 /* ====== Normalize any input to a JPEG File for the Worker ====== */
 async function normalizeToJpeg(file, maxDim=1800){
-  const { img, url } = await loadToImage(file); // throws if browser can’t decode (e.g., HEIC on some desktops)
-  // Downscale if needed
+  const { img } = await loadToImage(file);
   const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
   const s = Math.min(1, maxDim / Math.max(w,h));
   const cw = Math.round(w*s), ch = Math.round(h*s);
@@ -159,7 +160,7 @@ fileEl.addEventListener('change', async () => {
   const f = fileEl.files?.[0];
   if (!f) return;
 
-  // Quick preview ASAP (object URL of original)
+  // Quick preview ASAP
   const quickURL = URL.createObjectURL(f);
   sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(quickURL, "Selected selfie"));
   setSrc("Normalizing…");
@@ -169,7 +170,7 @@ fileEl.addEventListener('change', async () => {
     uploadFile = file;
     sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(previewURL, "Selected selfie"));
     setSrc("Ready to generate.");
-    stopCamera(); // close camera if on
+    stopCamera();
   } catch (err) {
     console.error(err);
     uploadFile = null;
@@ -196,7 +197,6 @@ async function generate(){
     const ctype=res.headers.get('content-type')||'';
     if(!res.ok){ const t=await res.text(); throw new Error(`Proxy error ${res.status}: ${t}`); }
 
-    // Worker may return JSON diagnostics or raw image
     if(ctype.includes('application/json')){
       const j=await res.json();
       if(j?.ok===false){ setStatus(`Model returned no image. ${j.message||''}`, false); console.warn('Diagnostics:', j.diagnostics||j); return; }
