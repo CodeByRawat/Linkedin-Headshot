@@ -7,25 +7,36 @@
   <meta name="theme-color" content="#0b0d10" />
   <style>
     :root{
-      --bg:#0b0d10;--card:#10151f;--panel:#0f131a;--fg:#e9eef5;--muted:#9aa6b2;--accent:#6aa1ff;--accent2:#7cf1d7;--danger:#ff6b6b
+      --bg:#0b0d10;--card:#10151f;--panel:#0f131a;--fg:#e9eef5;--muted:#9aa6b2;
+      --accent:#6aa1ff;--accent2:#7cf1d7;--danger:#ff6b6b
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,rgba(122,163,255,.12),transparent),
-                      radial-gradient(1200px 600px at 120% 10%,rgba(124,241,215,.12),transparent),
-                      var(--bg);color:var(--fg);font:16px/1.5 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 600px at 20% -10%,rgba(122,163,255,.12),transparent),
+        radial-gradient(1200px 600px at 120% 10%,rgba(124,241,215,.12),transparent),
+        var(--bg);
+      color:var(--fg);
+      font:16px/1.5 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial
+    }
     .wrap{max-width:1000px;margin:40px auto;padding:24px}
-    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
-          border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px);
-          border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:22px}
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+      border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px);
+      border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:22px
+    }
     h1{margin:0 0 8px;font-size:28px}
     p.muted{color:var(--muted);margin:0 0 12px}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
     @media (max-width:900px){.grid{grid-template-columns:1fr}}
     .panel{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px}
     .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-    .btn{appearance:none;border:1px solid transparent;background:var(--accent);color:#0c1222;font-weight:700;
-         padding:11px 14px;border-radius:12px;cursor:pointer;transition:transform .05s ease-in}
+    .btn{
+      appearance:none;border:1px solid transparent;background:var(--accent);color:#0c1222;font-weight:700;
+      padding:11px 14px;border-radius:12px;cursor:pointer;transition:transform .05s ease-in
+    }
     .btn:active{transform:translateY(1px)}
     .btn.secondary{background:transparent;border-color:#2a3240;color:var(--fg)}
     .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
@@ -62,10 +73,10 @@
             <button id="clearSrc" class="btn ghost">↺ Clear</button>
           </div>
 
-          <div class="drop hint">Tip: For best results, face the camera, good light, shoulders visible.</div>
+          <div class="drop hint">Tip: Face the camera, good light, shoulders visible.</div>
 
           <div id="sourceBox" class="media" aria-live="polite">
-            <!-- dynamic: video for camera / img for selected file / img for captured -->
+            <!-- video when camera on / img when selected/captured -->
           </div>
           <div class="status" id="srcStatus"></div>
         </section>
@@ -78,9 +89,7 @@
             <span class="badge" id="health">Worker: unknown</span>
           </div>
 
-          <div id="resultBox" class="media" aria-live="polite">
-            <!-- result image -->
-          </div>
+          <div id="resultBox" class="media" aria-live="polite"></div>
           <div class="status" id="status"></div>
         </section>
       </div>
@@ -88,48 +97,66 @@
   </div>
 
 <script>
-/* ================== CONFIG ================== */
-// Set to your Worker ROOT (no trailing slash)
-const WORKER_URL   = "https://<your-worker-subdomain>.workers.dev";
+document.addEventListener('DOMContentLoaded', () => {
+/* ======== CONFIG ======== */
+const WORKER_URL   = "https://<your-worker-subdomain>.workers.dev"; // ← root only, no trailing slash
 const PING_URL     = new URL("/ping", WORKER_URL);
 const GENERATE_URL = new URL("/generate", WORKER_URL);
 
-/* ================== Elements ================== */
-const openCamBtn = document.getElementById('openCam');
-const stopCamBtn = document.getElementById('stopCam');
-const takeShotBtn= document.getElementById('takeShot');
-const clearSrcBtn= document.getElementById('clearSrc');
-const fileEl     = document.getElementById('file');
-const sourceBox  = document.getElementById('sourceBox');
-const srcStatus  = document.getElementById('srcStatus');
-const generateBtn= document.getElementById('generate');
-const downloadBtn= document.getElementById('download');
-const resultBox  = document.getElementById('resultBox');
-const statusEl   = document.getElementById('status');
-const healthEl   = document.getElementById('health');
+/* ======== Elements ======== */
+const $ = id => document.getElementById(id);
+const openCamBtn  = $('openCam');
+const stopCamBtn  = $('stopCam');
+const takeShotBtn = $('takeShot');
+const clearSrcBtn = $('clearSrc');
+const fileEl      = $('file');
+const sourceBox   = $('sourceBox');
+const srcStatus   = $('srcStatus');
+const generateBtn = $('generate');
+const downloadBtn = $('download');
+const resultBox   = $('resultBox');
+const statusEl    = $('status');
+const healthEl    = $('health');
 
-/* ================== State ================== */
+/* ======== State ======== */
 let camStream = null;
-let capturedBlob = null;   // Blob from camera capture
-let uploadedFile = null;   // File from input
-let resultBlob = null;     // Blob from Worker
+let capturedBlob = null;
+let uploadedFile = null;
+let resultBlob = null;
 
-/* ================== Helpers ================== */
-function $img(src, alt){ const i=new Image(); i.src=src; i.alt=alt; i.decoding="async"; i.loading="eager"; return i; }
-function setStatus(msg, loading=false){ statusEl.innerHTML = loading ? `<span class="spinner"></span>${msg}` : msg; }
-function setSrcStatus(msg){ srcStatus.textContent = msg || ""; }
-function setHealth(ok){ healthEl.textContent = ok ? "Worker: online" : "Worker: offline"; }
+/* ======== Utils ======== */
+const setStatus   = (msg, spin=false)=> statusEl.innerHTML = spin ? `<span class="spinner"></span>${msg}` : msg;
+const setSrcStatus= msg => srcStatus.textContent = msg||"";
+const setHealth   = ok  => healthEl.textContent = ok ? "Worker: online ✅" : "Worker: offline ❌";
+function imgEl(src, alt){ const i=new Image(); i.src=src; i.alt=alt; i.decoding="async"; i.loading="eager"; return i; }
 
-/* ================== Camera ================== */
+window.addEventListener('error', (e) => {
+  console.error(e.error || e.message);
+  setStatus('JS error: ' + (e.error?.message || e.message));
+});
+
+/* Canvas → Blob (iOS safe) */
+function canvasToBlob(canvas, type='image/jpeg', quality=0.95){
+  return new Promise((resolve)=> {
+    if (canvas.toBlob) canvas.toBlob(b => resolve(b), type, quality);
+    else {
+      const dataURL = canvas.toDataURL(type, quality);
+      const [hdr,b64] = dataURL.split(',');
+      const bin = atob(b64); const u8=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+      resolve(new Blob([u8], { type }));
+    }
+  });
+}
+
+/* ======== Camera ======== */
 async function openCamera(){
   try{
-    capturedBlob = null;
-    uploadedFile = null;
-    resultBlob = null;
-    resultBox.innerHTML = "";
-    downloadBtn.disabled = true;
+    capturedBlob = null; uploadedFile = null; resultBlob = null;
+    resultBox.innerHTML = ""; downloadBtn.disabled = true;
 
-    const constraints = { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera API not available");
+    const constraints = { video: { facingMode:'user', width:{ideal:1280}, height:{ideal:720} }, audio:false };
     camStream = await navigator.mediaDevices.getUserMedia(constraints);
 
     const v = document.createElement('video');
@@ -141,61 +168,52 @@ async function openCamera(){
     setSrcStatus("Camera active. Position your face and tap Capture.");
   }catch(err){
     console.error(err);
-    setSrcStatus("Camera unavailable. You can still upload a photo.");
+    setSrcStatus("Camera unavailable. Use Upload Photo instead.");
   }
 }
-
 function stopCamera(){
-  if (camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+  try{ if (camStream){ camStream.getTracks().forEach(t=>t.stop()); } }catch{}
+  camStream = null;
   takeShotBtn.style.display = 'none';
   stopCamBtn.style.display = 'none';
 }
-
 async function takeShot(){
   const vid = sourceBox.querySelector('video');
-  if (!vid) return;
-
-  const w = vid.videoWidth || 1024;
-  const h = vid.videoHeight || 768;
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(vid, 0, 0, w, h);
-
-  await new Promise(r => canvas.toBlob(b => { capturedBlob = b; r(); }, 'image/jpeg', 0.95));
-
-  // Show captured preview
+  if (!vid){ setSrcStatus("Camera not started."); return; }
+  const w = vid.videoWidth || 1024, h = vid.videoHeight || 768;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(vid, 0, 0, w, h);
+  capturedBlob = await canvasToBlob(c, 'image/jpeg', 0.95);
+  if (!capturedBlob){ setSrcStatus("Capture failed. Try again."); return; }
   const url = URL.createObjectURL(capturedBlob);
-  sourceBox.innerHTML = ""; sourceBox.appendChild($img(url, "Captured selfie"));
+  sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(url, "Captured selfie"));
   setSrcStatus("Captured. You can retake or generate.");
   stopCamera();
 }
 
-/* ================== Upload ================== */
+/* ======== Upload ======== */
 fileEl.addEventListener('change', () => {
-  const f = fileEl.files[0];
-  if (!f){ return; }
+  const f = fileEl.files?.[0];
+  if (!f) return;
   if (!/^image\/(jpeg|jpg|png)$/i.test(f.type)){ alert('Please upload JPG or PNG.'); fileEl.value=""; return; }
-  if (f.size > 8*1024*1024){ alert('Please keep file ≤ 8 MB.'); fileEl.value=""; return; }
-
-  uploadedFile = f; capturedBlob = null; // prefer uploaded if present
+  if (f.size > 8 * 1024 * 1024){ alert('Please keep file ≤ 8 MB.'); fileEl.value=""; return; }
+  uploadedFile = f; capturedBlob = null;
   const url = URL.createObjectURL(f);
-  sourceBox.innerHTML = ""; sourceBox.appendChild($img(url, "Selected selfie"));
+  sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(url, "Selected selfie"));
   setSrcStatus("Photo selected. Ready to generate.");
   stopCamera();
 });
 
-/* ================== Clear ================== */
+/* ======== Clear ======== */
 function clearSource(){
-  uploadedFile = null; capturedBlob = null;
-  sourceBox.innerHTML = "";
-  setSrcStatus("Cleared. Use camera or upload a photo.");
+  uploadedFile = null; capturedBlob = null; sourceBox.innerHTML = ""; setSrcStatus("Cleared. Use camera or upload a photo.");
+  resultBlob = null; resultBox.innerHTML = ""; setStatus(""); downloadBtn.disabled = true;
 }
 
-/* ================== Worker Health ================== */
+/* ======== Health ======== */
 async function pingWorker(){
   try{
-    const res = await fetch(PING_URL, { method: 'GET' });
+    const res = await fetch(PING_URL, { method:'GET' });
     setHealth(res.ok);
     return res.ok;
   }catch{
@@ -203,39 +221,45 @@ async function pingWorker(){
   }
 }
 
-/* ================== Generate ================== */
+/* ======== Generate ======== */
 async function generate(){
-  const fileBlob = uploadedFile ? uploadedFile : capturedBlob;
-  if (!fileBlob){
-    alert('Please capture a selfie or upload a photo first.');
-    return;
-  }
+  const blob = uploadedFile || capturedBlob;
+  if (!blob){ alert('Please capture or upload a selfie first.'); return; }
+  if (!await pingWorker()){ setStatus("Worker offline or CORS blocked.", false); return; }
 
-  // UI state
-  generateBtn.disabled = true;
-  setStatus("Generating…", true);
-  resultBox.innerHTML = "";
-  downloadBtn.disabled = true;
+  generateBtn.disabled = true; setStatus("Generating…", true);
+  resultBox.innerHTML = ""; downloadBtn.disabled = true;
 
   try{
-    // Build multipart
     const fd = new FormData();
-    // If we captured, wrap blob into a File for better filename/mime handling
     const mime = (uploadedFile && uploadedFile.type) || (capturedBlob && capturedBlob.type) || 'image/jpeg';
-    const file = uploadedFile ? uploadedFile : new File([capturedBlob], "captured.jpg", { type: mime });
+    const file = uploadedFile ? uploadedFile : new File([blob], "captured.jpg", { type: mime });
     fd.append('image', file, file.name);
 
-    // Call Worker
-    const res = await fetch(GENERATE_URL, { method: 'POST', body: fd });
+    const res = await fetch(GENERATE_URL, { method:'POST', body: fd });
+    const ctype = res.headers.get('content-type') || '';
     if (!res.ok){
-      const t = await res.text();
-      throw new Error(`Proxy error ${res.status}: ${t}`);
+      const t = await res.text(); throw new Error(`Proxy error ${res.status}: ${t}`);
     }
-
-    // Expect image bytes back
-    resultBlob = await res.blob();
+    if (ctype.includes('application/json')){ // JSON diagnostic from worker (safety/text-only)
+      const j = await res.json();
+      if (j?.ok === false){
+        setStatus(`Model returned no image. ${j.message || ''}`, false);
+        console.warn("Diagnostics:", j.diagnostics || j);
+        return;
+      }
+      if (j?.dataUrl){
+        const img = imgEl(j.dataUrl, "LinkedIn headshot");
+        resultBox.innerHTML = ""; resultBox.appendChild(img);
+        const b64 = j.dataUrl.split(',')[1]; const bin=atob(b64); const u8=new Uint8Array(bin.length);
+        for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+        resultBlob = new Blob([u8], { type: 'image/png' });
+        setStatus("Done. You can download your headshot."); downloadBtn.disabled = false; return;
+      }
+    }
+    resultBlob = await res.blob(); // raw image
     const outURL = URL.createObjectURL(resultBlob);
-    resultBox.innerHTML = ""; resultBox.appendChild($img(outURL, "LinkedIn headshot"));
+    resultBox.innerHTML = ""; resultBox.appendChild(imgEl(outURL, "LinkedIn headshot"));
     setStatus("Done. You can download your headshot.");
     downloadBtn.disabled = false;
   }catch(err){
@@ -246,27 +270,26 @@ async function generate(){
   }
 }
 
-/* ================== Download ================== */
+/* ======== Download ======== */
 function downloadImage(){
   if (!resultBlob) return;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(resultBlob);
   a.download = 'linkedin_headshot.png';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
-/* ================== Wire UI ================== */
-openCamBtn.addEventListener('click', openCamera);
-stopCamBtn.addEventListener('click', stopCamera);
-takeShotBtn.addEventListener('click', takeShot);
-clearSrcBtn.addEventListener('click', clearSource);
-generateBtn.addEventListener('click', generate);
-downloadBtn.addEventListener('click', downloadImage);
+/* ======== Bind UI ======== */
+$('openCam')?.addEventListener('click', openCamera);
+$('stopCam')?.addEventListener('click', stopCamera);
+$('takeShot')?.addEventListener('click', takeShot);
+$('clearSrc')?.addEventListener('click', clearSource);
+$('generate')?.addEventListener('click', generate);
+$('download')?.addEventListener('click', downloadImage);
 
-// Initial health check
+/* Kick off */
 pingWorker();
+}); // DOMContentLoaded
 </script>
 </body>
 </html>
