@@ -72,25 +72,25 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-/* ====== CONFIG ====== */
-const WORKER_URL   = "https://<your-worker-subdomain>.workers.dev"; // ← root only
+/* ====== CONFIG (set this!) ====== */
+const WORKER_URL   = "https://<your-worker-subdomain>.workers.dev"; // root only, no trailing slash
 const PING_URL     = new URL("/ping", WORKER_URL);
 const GENERATE_URL = new URL("/generate", WORKER_URL);
 
 /* ====== Elements ====== */
 const $ = id => document.getElementById(id);
-const fileEl=$('file'), sourceBox=$('sourceBox'), srcStatus=$('srcStatus'), openCamBtn=$('openCam');
-const stopCamBtn=$('stopCam'), takeShotBtn=$('takeShot'), clearSrcBtn=$('clearSrc');
+const fileEl=$('file'), sourceBox=$('sourceBox'), srcStatus=$('srcStatus');
+const openCamBtn=$('openCam'), stopCamBtn=$('stopCam'), takeShotBtn=$('takeShot'), clearSrcBtn=$('clearSrc');
 const generateBtn=$('generate'), downloadBtn=$('download'), resultBox=$('resultBox');
 const statusEl=$('status'), healthEl=$('health');
 
 /* ====== State ====== */
 let camStream=null, uploadFile=null, resultBlob=null;
 
-/* ====== Safety & Logs ====== */
+/* ====== Error surfacing ====== */
 window.addEventListener('error', e => {
   console.error(e.error||e.message);
-  statusEl.textContent = 'JS error: ' + (e.error?.message || e.message);
+  setStatus('JS error: ' + (e.error?.message || e.message));
 });
 
 /* ====== Helpers ====== */
@@ -104,31 +104,7 @@ const canvasToBlob=(canvas,type='image/jpeg',q=.92)=>new Promise(res=>{
          for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i); res(new Blob([u8],{type})); }
 });
 
-/* ====== Basic preview (always show something on select) ====== */
-fileEl.addEventListener('change', async () => {
-  const f = fileEl.files && fileEl.files[0];
-  if (!f) return;
-
-  // 1) Show immediate objectURL preview (works for most formats)
-  const quickURL = URL.createObjectURL(f);
-  sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(quickURL, "Selected selfie"));
-  setSrc("Photo selected. Normalizing…");
-
-  // 2) Normalize to JPEG for the Worker (decode via <img> + canvas)
-  try {
-    const { file, previewURL } = await normalizeToJpeg(f, 1800);
-    uploadFile = file;
-    sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(previewURL, "Selected selfie"));
-    setSrc("Ready to generate.");
-    stopCamera(); // if camera was open
-  } catch (err) {
-    console.error(err);
-    uploadFile = null;
-    setSrc(`<span class="error">${err.message}</span> Try the Camera button or a JPG/PNG.`);
-  }
-});
-
-/* Decode any image the browser supports and convert to JPEG */
+/* ====== File → <img> (decode) ====== */
 function loadToImage(file){
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -138,17 +114,19 @@ function loadToImage(file){
     img.src = url;
   });
 }
+
+/* ====== Normalize any input to a JPEG File for the Worker ====== */
 async function normalizeToJpeg(file, maxDim=1800){
-  const { img, url } = await loadToImage(file);
-  // Downscale
+  const { img, url } = await loadToImage(file); // throws if browser can’t decode (e.g., HEIC on some desktops)
+  // Downscale if needed
   const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
   const s = Math.min(1, maxDim / Math.max(w,h));
   const cw = Math.round(w*s), ch = Math.round(h*s);
   const c = document.createElement('canvas'); c.width=cw; c.height=ch;
-  c.getContext('2d').drawImage(img, 0, 0, cw, ch);
-  let blob = await canvasToBlob(c, 'image/jpeg', 0.92);
-  if (blob.size > 8*1024*1024) blob = await canvasToBlob(c, 'image/jpeg', 0.85);
-  return { file: new File([blob], 'upload.jpg', { type:'image/jpeg' }), previewURL: URL.createObjectURL(blob) };
+  c.getContext('2d').drawImage(img,0,0,cw,ch);
+  let blob = await canvasToBlob(c,'image/jpeg',0.92);
+  if (blob.size > 8*1024*1024) blob = await canvasToBlob(c,'image/jpeg',0.85);
+  return { file: new File([blob],'upload.jpg',{type:'image/jpeg'}), previewURL: URL.createObjectURL(blob) };
 }
 
 /* ====== Camera ====== */
@@ -156,7 +134,7 @@ async function openCamera(){
   try{
     uploadFile=null; resultBlob=null; resultBox.innerHTML=""; downloadBtn.disabled=true;
     if(!navigator.mediaDevices?.getUserMedia) throw new Error("Camera API not available");
-    const cs = { video:{ facingMode:'user', width:{ideal:1280}, height:{ideal:720} }, audio:false };
+    const cs = { video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}}, audio:false };
     camStream = await navigator.mediaDevices.getUserMedia(cs);
     const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=camStream;
     sourceBox.innerHTML=""; sourceBox.appendChild(v);
@@ -176,8 +154,34 @@ async function takeShot(){
   uploadFile = new File([blob], "captured.jpg", { type:"image/jpeg" });
 }
 
-/* ====== Worker health ====== */
-async function pingWorker(){ try{ const r=await fetch(PING_URL,{method:'GET'}); setHealth(r.ok); return r.ok; }catch{ setHealth(false); return false; }}
+/* ====== Upload ====== */
+fileEl.addEventListener('change', async () => {
+  const f = fileEl.files?.[0];
+  if (!f) return;
+
+  // Quick preview ASAP (object URL of original)
+  const quickURL = URL.createObjectURL(f);
+  sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(quickURL, "Selected selfie"));
+  setSrc("Normalizing…");
+
+  try {
+    const { file, previewURL } = await normalizeToJpeg(f, 1800);
+    uploadFile = file;
+    sourceBox.innerHTML = ""; sourceBox.appendChild(imgEl(previewURL, "Selected selfie"));
+    setSrc("Ready to generate.");
+    stopCamera(); // close camera if on
+  } catch (err) {
+    console.error(err);
+    uploadFile = null;
+    setSrc(`<span class="error">${err.message}</span> Try the Camera button or upload a JPG/PNG.`);
+  }
+});
+
+/* ====== Health ====== */
+async function pingWorker(){
+  try{ const r=await fetch(PING_URL,{method:'GET'}); setHealth(r.ok); return r.ok; }
+  catch{ setHealth(false); return false; }
+}
 
 /* ====== Generate ====== */
 async function generate(){
@@ -192,7 +196,8 @@ async function generate(){
     const ctype=res.headers.get('content-type')||'';
     if(!res.ok){ const t=await res.text(); throw new Error(`Proxy error ${res.status}: ${t}`); }
 
-    if(ctype.includes('application/json')){ // diagnostics path
+    // Worker may return JSON diagnostics or raw image
+    if(ctype.includes('application/json')){
       const j=await res.json();
       if(j?.ok===false){ setStatus(`Model returned no image. ${j.message||''}`, false); console.warn('Diagnostics:', j.diagnostics||j); return; }
       if(j?.dataUrl){
@@ -214,15 +219,18 @@ async function generate(){
 /* ====== Download ====== */
 function downloadImage(){ if(!resultBlob) return; const a=document.createElement('a'); a.href=URL.createObjectURL(resultBlob); a.download='linkedin_headshot.jpg'; document.body.appendChild(a); a.click(); a.remove(); }
 
+/* ====== Clear ====== */
+function clearAll(){ uploadFile=null; sourceBox.innerHTML=""; setSrc("Cleared."); resultBlob=null; resultBox.innerHTML=""; setStatus(""); downloadBtn.disabled=true; }
+
 /* ====== Bind ====== */
 openCamBtn.addEventListener('click', openCamera);
 stopCamBtn.addEventListener('click', stopCamera);
 takeShotBtn.addEventListener('click', takeShot);
-clearSrcBtn.addEventListener('click', ()=>{ uploadFile=null; sourceBox.innerHTML=""; setSrc("Cleared."); resultBlob=null; resultBox.innerHTML=""; setStatus(""); downloadBtn.disabled=true; });
+clearSrcBtn.addEventListener('click', clearAll);
 generateBtn.addEventListener('click', generate);
 downloadBtn.addEventListener('click', downloadImage);
 
-/* start */
+/* Start */
 pingWorker();
 }); // DOMContentLoaded
 </script>
