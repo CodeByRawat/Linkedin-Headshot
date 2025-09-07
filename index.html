@@ -4,123 +4,269 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LinkedIn Headshot Generator</title>
+  <meta name="theme-color" content="#0b0d10" />
   <style>
-    :root{--bg:#0b0d10;--card:#141821;--fg:#e9eef5;--muted:#99a3ad;--accent:#3b82f6}
+    :root{
+      --bg:#0b0d10;--card:#10151f;--panel:#0f131a;--fg:#e9eef5;--muted:#9aa6b2;--accent:#6aa1ff;--accent2:#7cf1d7;--danger:#ff6b6b
+    }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
-    .wrap{max-width:920px;margin:40px auto;padding:24px}
-    .card{background:var(--card);border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    h1{font-size:28px;margin:0 0 10px}
-    p.muted{color:var(--muted)}
-    .uploader{border:1px dashed #2a3240;border-radius:14px;padding:20px;margin:14px 0;background:#0f131a}
-    input[type=file]{display:block;margin:10px 0;color:var(--fg)}
-    button{appearance:none;border:0;background:var(--accent);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;cursor:pointer}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .imgbox{background:#0f131a;border-radius:14px;display:flex;align-items:center;justify-content:center;min-height:340px}
-    .imgbox img{max-width:100%;max-height:520px;border-radius:12px}
+    html,body{height:100%}
+    body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,rgba(122,163,255,.12),transparent),
+                      radial-gradient(1200px 600px at 120% 10%,rgba(124,241,215,.12),transparent),
+                      var(--bg);color:var(--fg);font:16px/1.5 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    .wrap{max-width:1000px;margin:40px auto;padding:24px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+          border:1px solid rgba(255,255,255,.06);backdrop-filter:blur(8px);
+          border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:22px}
+    h1{margin:0 0 8px;font-size:28px}
+    p.muted{color:var(--muted);margin:0 0 12px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .panel{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .btn{appearance:none;border:1px solid transparent;background:var(--accent);color:#0c1222;font-weight:700;
+         padding:11px 14px;border-radius:12px;cursor:pointer;transition:transform .05s ease-in}
+    .btn:active{transform:translateY(1px)}
+    .btn.secondary{background:transparent;border-color:#2a3240;color:var(--fg)}
+    .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+    .btn.danger{background:var(--danger);color:#1b0b0b}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
     .hint{font-size:13px;color:var(--muted)}
-    .small{font-size:12px;color:var(--muted)}
+    .drop{border:1px dashed #2a3240;border-radius:14px;padding:16px;text-align:center;background:#0f131a}
+    .media{display:flex;align-items:center;justify-content:center;background:#0e131a;border-radius:12px;min-height:340px}
+    .media img,.media video,canvas{max-width:100%;max-height:520px;border-radius:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .status{min-height:20px;font-size:13px;color:var(--muted)}
+    .spinner{width:18px;height:18px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin 0.9s linear infinite;vertical-align:-3px;margin-right:8px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    input[type=file]{display:none}
+    label.file-btn{display:inline-block}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>📸 LinkedIn Headshot Generator</h1>
-      <p class="muted">Upload a selfie. We refine lighting/background/attire while <b>keeping your identity consistent</b>. No images are stored.</p>
+      <h1>LinkedIn Headshot Generator</h1>
+      <p class="muted">Capture or upload a selfie. We’ll refine lighting/background/attire while <b>keeping your identity consistent</b>. Nothing is stored.</p>
 
-      <div class="uploader">
-        <label>Selfie (JPG/PNG, ≤ 8 MB)</label>
-        <input id="file" type="file" accept="image/*" />
-        <label>Optional identity note (e.g., your name)</label>
-        <input id="note" type="text" placeholder="e.g., Sachin Rawat" style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3240;background:#0f131a;color:#fff" />
-        <div style="margin-top:12px">
-          <button id="go">Generate Headshot</button>
-          <span id="status" class="hint" style="margin-left:12px"></span>
-        </div>
-      </div>
+      <div class="grid">
+        <!-- Left: Source (Camera / Upload) -->
+        <section class="panel">
+          <div class="toolbar">
+            <button id="openCam" class="btn">📷 Use Camera</button>
+            <label class="file-btn btn secondary" for="file">📁 Upload Photo</label>
+            <input id="file" type="file" accept="image/*" capture="user" />
+            <button id="takeShot" class="btn secondary" style="display:none">📸 Capture</button>
+            <button id="stopCam" class="btn ghost" style="display:none">✖ Close Camera</button>
+            <button id="clearSrc" class="btn ghost">↺ Clear</button>
+          </div>
 
-      <div class="row">
-        <div>
-          <div class="imgbox"><img id="preview" alt="preview" /></div>
-          <p class="small">Local preview only (not uploaded until you click Generate).</p>
-        </div>
-        <div>
-          <div class="imgbox"><img id="result" alt="result" /></div>
-          <p class="small">Final LinkedIn-ready headshot will appear here.</p>
-        </div>
+          <div class="drop hint">Tip: For best results, face the camera, good light, shoulders visible.</div>
+
+          <div id="sourceBox" class="media" aria-live="polite">
+            <!-- dynamic: video for camera / img for selected file / img for captured -->
+          </div>
+          <div class="status" id="srcStatus"></div>
+        </section>
+
+        <!-- Right: Result -->
+        <section class="panel">
+          <div class="row">
+            <button id="generate" class="btn">⚡ Generate Headshot</button>
+            <button id="download" class="btn secondary" disabled>⬇ Download</button>
+            <span class="badge" id="health">Worker: unknown</span>
+          </div>
+
+          <div id="resultBox" class="media" aria-live="polite">
+            <!-- result image -->
+          </div>
+          <div class="status" id="status"></div>
+        </section>
       </div>
     </div>
   </div>
 
 <script>
-const WORKER_URL  = "https://headshot-proxy.sachinrawat-in-com.workers.dev";   // ← set your Worker root (no trailing slash)
-const GENERATE_URL = WORKER_URL + "/generate";
-const PING_URL     = WORKER_URL + "/ping";
+/* ================== CONFIG ================== */
+// Set to your Worker ROOT (no trailing slash)
+const WORKER_URL   = "https://<your-worker-subdomain>.workers.dev";
+const PING_URL     = new URL("/ping", WORKER_URL);
+const GENERATE_URL = new URL("/generate", WORKER_URL);
 
-const fileEl    = document.getElementById('file');
-const noteEl    = document.getElementById('note');
-const goBtn     = document.getElementById('go');
-const previewEl = document.getElementById('preview');
-const resultEl  = document.getElementById('result');
-const statusEl  = document.getElementById('status');
+/* ================== Elements ================== */
+const openCamBtn = document.getElementById('openCam');
+const stopCamBtn = document.getElementById('stopCam');
+const takeShotBtn= document.getElementById('takeShot');
+const clearSrcBtn= document.getElementById('clearSrc');
+const fileEl     = document.getElementById('file');
+const sourceBox  = document.getElementById('sourceBox');
+const srcStatus  = document.getElementById('srcStatus');
+const generateBtn= document.getElementById('generate');
+const downloadBtn= document.getElementById('download');
+const resultBox  = document.getElementById('resultBox');
+const statusEl   = document.getElementById('status');
+const healthEl   = document.getElementById('health');
 
-window.addEventListener('error', (e) => {
-  console.error(e.error || e.message);
-  if (statusEl) statusEl.textContent = 'JS error: ' + (e.error?.message || e.message);
-});
+/* ================== State ================== */
+let camStream = null;
+let capturedBlob = null;   // Blob from camera capture
+let uploadedFile = null;   // File from input
+let resultBlob = null;     // Blob from Worker
 
-fileEl?.addEventListener('change', () => {
+/* ================== Helpers ================== */
+function $img(src, alt){ const i=new Image(); i.src=src; i.alt=alt; i.decoding="async"; i.loading="eager"; return i; }
+function setStatus(msg, loading=false){ statusEl.innerHTML = loading ? `<span class="spinner"></span>${msg}` : msg; }
+function setSrcStatus(msg){ srcStatus.textContent = msg || ""; }
+function setHealth(ok){ healthEl.textContent = ok ? "Worker: online" : "Worker: offline"; }
+
+/* ================== Camera ================== */
+async function openCamera(){
+  try{
+    capturedBlob = null;
+    uploadedFile = null;
+    resultBlob = null;
+    resultBox.innerHTML = "";
+    downloadBtn.disabled = true;
+
+    const constraints = { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+    camStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    const v = document.createElement('video');
+    v.autoplay = true; v.playsInline = true; v.muted = true; v.srcObject = camStream;
+    sourceBox.innerHTML = ""; sourceBox.appendChild(v);
+
+    takeShotBtn.style.display = '';
+    stopCamBtn.style.display = '';
+    setSrcStatus("Camera active. Position your face and tap Capture.");
+  }catch(err){
+    console.error(err);
+    setSrcStatus("Camera unavailable. You can still upload a photo.");
+  }
+}
+
+function stopCamera(){
+  if (camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+  takeShotBtn.style.display = 'none';
+  stopCamBtn.style.display = 'none';
+}
+
+async function takeShot(){
+  const vid = sourceBox.querySelector('video');
+  if (!vid) return;
+
+  const w = vid.videoWidth || 1024;
+  const h = vid.videoHeight || 768;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(vid, 0, 0, w, h);
+
+  await new Promise(r => canvas.toBlob(b => { capturedBlob = b; r(); }, 'image/jpeg', 0.95));
+
+  // Show captured preview
+  const url = URL.createObjectURL(capturedBlob);
+  sourceBox.innerHTML = ""; sourceBox.appendChild($img(url, "Captured selfie"));
+  setSrcStatus("Captured. You can retake or generate.");
+  stopCamera();
+}
+
+/* ================== Upload ================== */
+fileEl.addEventListener('change', () => {
   const f = fileEl.files[0];
-  if (!f) return;
-  if (!/^image\/(jpeg|jpg|png)$/i.test(f.type)) { alert('Please upload JPG or PNG.'); fileEl.value=""; return; }
-  if (f.size > 8 * 1024 * 1024) { alert('Please keep file ≤ 8 MB.'); fileEl.value=""; return; }
-  previewEl.src = URL.createObjectURL(f);
+  if (!f){ return; }
+  if (!/^image\/(jpeg|jpg|png)$/i.test(f.type)){ alert('Please upload JPG or PNG.'); fileEl.value=""; return; }
+  if (f.size > 8*1024*1024){ alert('Please keep file ≤ 8 MB.'); fileEl.value=""; return; }
+
+  uploadedFile = f; capturedBlob = null; // prefer uploaded if present
+  const url = URL.createObjectURL(f);
+  sourceBox.innerHTML = ""; sourceBox.appendChild($img(url, "Selected selfie"));
+  setSrcStatus("Photo selected. Ready to generate.");
+  stopCamera();
 });
 
-async function pingWorker() {
-  try {
+/* ================== Clear ================== */
+function clearSource(){
+  uploadedFile = null; capturedBlob = null;
+  sourceBox.innerHTML = "";
+  setSrcStatus("Cleared. Use camera or upload a photo.");
+}
+
+/* ================== Worker Health ================== */
+async function pingWorker(){
+  try{
     const res = await fetch(PING_URL, { method: 'GET' });
-    if (!res.ok) throw new Error(`Ping failed ${res.status}`);
-    return true;
-  } catch (err) {
-    console.error(err);
-    statusEl.textContent = `Cannot reach Worker (${PING_URL}). Check WORKER_URL or CORS.`;
-    return false;
+    setHealth(res.ok);
+    return res.ok;
+  }catch{
+    setHealth(false); return false;
   }
 }
 
+/* ================== Generate ================== */
 async function generate(){
-  const f = fileEl?.files?.[0];
-  if (!f){ alert('Please choose a selfie image first.'); return; }
-  if (!(await pingWorker())) return;
+  const fileBlob = uploadedFile ? uploadedFile : capturedBlob;
+  if (!fileBlob){
+    alert('Please capture a selfie or upload a photo first.');
+    return;
+  }
 
-  goBtn.disabled = true;
-  statusEl.textContent = 'Uploading and generating…';
-  resultEl.src = '';
+  // UI state
+  generateBtn.disabled = true;
+  setStatus("Generating…", true);
+  resultBox.innerHTML = "";
+  downloadBtn.disabled = true;
 
-  try {
+  try{
+    // Build multipart
     const fd = new FormData();
-    fd.append('image', f, f.name);
-    fd.append('note', (noteEl?.value || ''));
+    // If we captured, wrap blob into a File for better filename/mime handling
+    const mime = (uploadedFile && uploadedFile.type) || (capturedBlob && capturedBlob.type) || 'image/jpeg';
+    const file = uploadedFile ? uploadedFile : new File([capturedBlob], "captured.jpg", { type: mime });
+    fd.append('image', file, file.name);
 
+    // Call Worker
     const res = await fetch(GENERATE_URL, { method: 'POST', body: fd });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Proxy error ${res.status}: ${text}`);
+    if (!res.ok){
+      const t = await res.text();
+      throw new Error(`Proxy error ${res.status}: ${t}`);
     }
-    const blob = await res.blob();
-    resultEl.src = URL.createObjectURL(blob);
-    statusEl.textContent = 'Done. Right-click → Save image.';
-  } catch (err) {
+
+    // Expect image bytes back
+    resultBlob = await res.blob();
+    const outURL = URL.createObjectURL(resultBlob);
+    resultBox.innerHTML = ""; resultBox.appendChild($img(outURL, "LinkedIn headshot"));
+    setStatus("Done. You can download your headshot.");
+    downloadBtn.disabled = false;
+  }catch(err){
     console.error(err);
-    statusEl.textContent = 'Failed: ' + err.message;
-  } finally {
-    goBtn.disabled = false;
+    setStatus(String(err.message || err), false);
+  }finally{
+    generateBtn.disabled = false;
   }
 }
 
-goBtn?.addEventListener('click', generate);
+/* ================== Download ================== */
+function downloadImage(){
+  if (!resultBlob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(resultBlob);
+  a.download = 'linkedin_headshot.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/* ================== Wire UI ================== */
+openCamBtn.addEventListener('click', openCamera);
+stopCamBtn.addEventListener('click', stopCamera);
+takeShotBtn.addEventListener('click', takeShot);
+clearSrcBtn.addEventListener('click', clearSource);
+generateBtn.addEventListener('click', generate);
+downloadBtn.addEventListener('click', downloadImage);
+
+// Initial health check
+pingWorker();
 </script>
 </body>
 </html>
