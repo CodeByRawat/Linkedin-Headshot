@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LinkedIn Headshot Generator</title>
+  <style>
+    :root{--bg:#0b0d10;--card:#141821;--fg:#e9eef5;--muted:#99a3ad;--accent:#3b82f6}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    .wrap{max-width:920px;margin:40px auto;padding:24px}
+    .card{background:var(--card);border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{font-size:28px;margin:0 0 10px}
+    p.muted{color:var(--muted)}
+    .uploader{border:1px dashed #2a3240;border-radius:14px;padding:20px;margin:14px 0;background:#0f131a}
+    input[type=file]{display:block;margin:10px 0;color:var(--fg)}
+    button{appearance:none;border:0;background:var(--accent);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .imgbox{background:#0f131a;border-radius:14px;display:flex;align-items:center;justify-content:center;min-height:340px}
+    .imgbox img{max-width:100%;max-height:520px;border-radius:12px}
+    .hint{font-size:13px;color:var(--muted)}
+    .small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>📸 LinkedIn Headshot Generator</h1>
+      <p class="muted">Upload a selfie. We’ll refine lighting/background/attire while <b>keeping your identity consistent</b>. No images are stored.</p>
+
+      <div class="uploader">
+        <label>Selfie (JPG/PNG, ≤ 8 MB)</label>
+        <input id="file" type="file" accept="image/*" />
+        <label>Optional identity note (e.g., your name)</label>
+        <input id="note" type="text" placeholder="e.g., Sachin Rawat" style="width:100%;padding:10px;border-radius:10px;border:1px solid #2a3240;background:#0f131a;color:#fff" />
+        <div style="margin-top:12px">
+          <button id="go">Generate Headshot</button>
+          <span id="status" class="hint" style="margin-left:12px"></span>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <div class="imgbox"><img id="preview" alt="preview" /></div>
+          <p class="small">Local preview only (not uploaded until you click Generate).</p>
+        </div>
+        <div>
+          <div class="imgbox"><img id="result" alt="result" /></div>
+          <p class="small">Final LinkedIn-ready headshot will appear here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const WORKER_URL = "https://<your-worker-subdomain>.workers.dev/generate"; // ← set your Worker URL
+
+// Identity-safe master prompt
+const PROMPT = `Generate a professional LinkedIn headshot using the uploaded selfie as the base reference.
+Keep my identity consistent — do not alter facial structure, eyes, nose, lips, or natural features.
+Only refine lighting, skin tone, background, and attire.
+Place me in a clean, neutral light-grey studio background with soft professional lighting.
+Dress me in formal business attire: dark blazer over a light shirt.
+Maintain natural skin texture and realistic detail; gentle, approachable expression.
+Front-facing, shoulders-up composition with shallow depth of field.
+Output a photorealistic corporate headshot suitable for LinkedIn.`;
+
+// Elements
+const fileEl = document.getElementById('file');
+const noteEl = document.getElementById('note');
+const goBtn = document.getElementById('go');
+const previewImg = document.getElementById('preview');
+const resultImg = document.getElementById('result');
+const statusEl = document.getElementById('status');
+
+fileEl.addEventListener('change', () => {
+  const f = fileEl.files[0];
+  if (!f) return;
+  if (!/^image\\/(jpeg|jpg|png)$/i.test(f.type)) { alert('Please upload JPG or PNG.'); fileEl.value = ""; return; }
+  if (f.size > 8 * 1024 * 1024) { alert('Please keep file ≤ 8 MB.'); fileEl.value = ""; return; }
+  previewImg.src = URL.createObjectURL(f);
+});
+
+async function generate(){
+  const f = fileEl.files[0];
+  if (!f){ alert('Please choose a selfie image first.'); return; }
+  goBtn.disabled = true; statusEl.textContent = 'Uploading and generating…'; resultImg.src = '';
+  try {
+    const fd = new FormData();
+    fd.append('image', f, f.name);
+    fd.append('prompt', PROMPT);
+    fd.append('note', noteEl.value || '');
+
+    const res = await fetch(WORKER_URL, { method: 'POST', body: fd });
+    if (!res.ok){
+      const text = await res.text();
+      throw new Error(`Proxy error ${res.status}: ${text}`);
+    }
+    const blob = await res.blob();
+    resultImg.src = URL.createObjectURL(blob);
+    statusEl.textContent = 'Done. Right-click to save the image.';
+  } catch (err){
+    console.error(err);
+    statusEl.textContent = 'Failed: ' + err.message;
+  } finally {
+    goBtn.disabled = false;
+  }
+}
+
+goBtn.addEventListener('click', generate);
+</script>
+</body>
+</html>
